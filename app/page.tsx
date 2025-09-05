@@ -1,4 +1,4 @@
-// app/page.tsx — Public marketing homepage with ROI-driven messaging (Auth0 Universal Login link)
+// app/page.tsx — Public marketing homepage (direct Auth0 links, no client auth hooks)
 
 import {
   Sparkles,
@@ -14,28 +14,7 @@ import {
   Check,
 } from "lucide-react";
 import Link from "next/link";
-import Script from "next/script";
 import NextImage from "next/image";
-
-// ---------- Auth0 Login URLs (marketing → Auth0 → dashboard) ----------
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://hablr.ai";
-const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "https://app.hablr.ai";
-const AUTH0_DOMAIN = process.env.NEXT_PUBLIC_AUTH0_ISSUER_BASE_URL ?? "https://auth.hablr.ai";
-const AUTH0_CLIENT_ID = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID ?? "REPLACE_ME";
-
-const REDIRECT_URI = `${DASHBOARD_URL}/api/auth/callback`;
-const SCOPE = encodeURIComponent("openid profile email");
-const RESPONSE_TYPE = "code";
-
-const LOGIN_URL = `${AUTH0_DOMAIN}/u/login?client_id=${encodeURIComponent(
-  AUTH0_CLIENT_ID
-)}&redirect_uri=${encodeURIComponent(
-  REDIRECT_URI
-)}&response_type=${RESPONSE_TYPE}&scope=${SCOPE}`;
-
-// Optional convenience logout (will only fully log out if dashboard implements it)
-const LOGOUT_URL = `${DASHBOARD_URL}/api/auth/logout?returnTo=${encodeURIComponent(SITE_URL)}`;
-// ---------------------------------------------------------------------
 
 // ---------- SEO (App Router) ----------
 export const metadata = {
@@ -61,40 +40,43 @@ export const metadata = {
 };
 // -------------------------------------
 
+// Build a direct Universal Login URL (no /api/auth on this marketing app).
+// If you want to use the *exact* long URL Auth0 gave you (with PKCE bits), set NEXT_PUBLIC_AUTH0_LOGIN_URL.
+function buildLoginUrl(): string {
+  // 1) Absolute override (paste your full working URL here in env if desired)
+  const override = process.env.NEXT_PUBLIC_AUTH0_LOGIN_URL;
+  if (override) return override;
+
+  // 2) Otherwise build a clean /u/login URL
+  const AUTH0_DOMAIN = (process.env.NEXT_PUBLIC_AUTH0_ISSUER_BASE_URL || "https://auth.hablr.ai").replace(/\/+$/, "");
+  const AUTH0_CLIENT_ID = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID || "AUTEUkvgwXklugJH0eHSphcdPXKLcaJE";
+  const DASHBOARD_URL = (process.env.NEXT_PUBLIC_DASHBOARD_URL || "https://app.hablr.ai").replace(/\/+$/, "");
+  const redirectUri = `${DASHBOARD_URL}/api/auth/callback`;
+
+  // NOTE: Your dashboard’s @auth0/nextjs-auth0 will handle the code exchange at /api/auth/callback.
+  // We include scope and state=returnTo so your app can route to /dashboard after login.
+  const scope = "openid profile email";
+  const state = JSON.stringify({ returnTo: "/dashboard" });
+
+  // If you *must* use /authorize + PKCE, set NEXT_PUBLIC_AUTH0_LOGIN_URL to the exact URL you pasted from Auth0.
+  // This default uses /u/login which is accepted for Universal Login in most setups.
+  const url =
+    `${AUTH0_DOMAIN}/u/login` +
+    `?client_id=${encodeURIComponent(AUTH0_CLIENT_ID)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&response_type=code` +
+    `&scope=${encodeURIComponent(scope)}` +
+    `&state=${encodeURIComponent(state)}` +
+    `&audience=${encodeURIComponent(`${AUTH0_DOMAIN}/api/v2/`)}`;
+
+  return url;
+}
+
 export default function LandingPage() {
-  const base = SITE_URL;
-
-  const org = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "Hablr.ai",
-    url: base,
-    logo: `${base}/icon-512x512.png`,
-    sameAs: ["https://www.linkedin.com/company/hablr-ai"],
-  };
-
-  const website = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "Hablr.ai",
-    url: base,
-    potentialAction: {
-      "@type": "SearchAction",
-      target: `${base}/?q={search_term_string}`,
-      "query-input": "required name=search_term_string",
-    },
-  };
+  const LOGIN_URL = buildLoginUrl();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-900">
-      {/* JSON-LD */}
-      <Script id="ld-org" type="application/ld+json">
-        {JSON.stringify(org)}
-      </Script>
-      <Script id="ld-website" type="application/ld+json">
-        {JSON.stringify(website)}
-      </Script>
-
       {/* Nav */}
       <header className="sticky top-0 z-30 backdrop-blur bg-white/80 border-b border-primary/10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -108,33 +90,27 @@ export default function LandingPage() {
             </span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm">
-            <a href="#features" className="hover:text-primary-700">
-              Features
-            </a>
-            <a href="#roi" className="hover:text-primary-700">
-              ROI
-            </a>
-            <a href="#pricing" className="hover:text-primary-700">
-              Pricing
-            </a>
-            <a href="#faq" className="hover:text-primary-700">
-              FAQ
-            </a>
+            <a href="#features" className="hover:text-primary-700">Features</a>
+            <a href="#roi" className="hover:text-primary-700">ROI</a>
+            <a href="#pricing" className="hover:text-primary-700">Pricing</a>
+            <a href="#faq" className="hover:text-primary-700">FAQ</a>
           </nav>
           <div className="flex items-center gap-2">
-            {/* Direct to Universal Login on your custom domain */}
-            <Link
+            {/* Direct absolute link to Auth0 Universal Login (no UserProvider required here) */}
+            <a
               href={LOGIN_URL}
               className="hidden sm:inline-flex px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 border border-blue-200"
+              rel="noopener noreferrer"
             >
               Log in
-            </Link>
-            <Link
+            </a>
+            <a
               href={LOGIN_URL}
               className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
+              rel="noopener noreferrer"
             >
               Start free
-            </Link>
+            </a>
           </div>
         </div>
       </header>
@@ -151,16 +127,16 @@ export default function LandingPage() {
               </span>
             </h1>
             <p className="mt-5 text-lg text-slate-600">
-              20.7M cost-burdened homeowners. 3.3M delinquent mortgages. Hablr.ai helps you capture this market faster,
-              cheaper, and with empathy—cutting CAC by up to 40% while increasing conversion rates.
+              20.7M cost-burdened homeowners. 3.3M delinquent mortgages. Hablr.ai helps you capture this market faster, cheaper, and with empathy—cutting CAC by up to 40% while increasing conversion rates.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
-              <Link
+              <a
                 href={LOGIN_URL}
                 className="px-5 py-3 rounded-2xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700"
+                rel="noopener noreferrer"
               >
                 Start free
-              </Link>
+              </a>
               <a
                 href="#roi"
                 className="inline-flex items-center justify-center rounded-2xl border border-blue-200 px-5 py-3 font-semibold hover:bg-blue-50"
@@ -189,8 +165,7 @@ export default function LandingPage() {
           <div className="max-w-2xl">
             <h2 className="text-3xl font-bold tracking-tight">Everything you need to capture, qualify, and close</h2>
             <p className="mt-3 text-slate-600">
-              Hablr.ai unifies contacts, properties, tasks, and conversations—backed by HID-based ownership and granular
-              sharing.
+              Hablr.ai unifies contacts, properties, tasks, and conversations—backed by HID-based ownership and granular sharing.
             </p>
           </div>
 
@@ -222,7 +197,7 @@ export default function LandingPage() {
       <section id="roi" className="py-16 border-t border-primary/10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold tracking-tight mb-6">Your ROI with Hablr.ai</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <Feature icon={<Users2 className="h-5 w-5" />} title="Cut Costs" desc="Save up to $5,000/month by replacing outsourced call centers with AI-driven outreach." />
             <Feature icon={<Database className="h-5 w-5" />} title="Higher Conversions" desc="Empathetic AI conversations reduce hang-ups and build trust, increasing conversion rates by 3x." />
             <Feature icon={<Building2 className="h-5 w-5" />} title="Faster Closes" desc="AI-qualified leads mean you close deals up to 2 weeks faster than traditional pipelines." />
@@ -253,19 +228,45 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
             <h2 className="text-3xl font-bold tracking-tight">Frequently asked questions</h2>
-            <p className="mt-3 text-slate-600">Everything you need to know about setup, security, and pricing.</p>
+            <p className="mt-3 text-slate-600">
+              Everything you need to know about setup, security, and pricing.
+            </p>
           </div>
 
           <div className="mt-10 grid md:grid-cols-2 gap-6">
             {[
-              { q: "How does HID ownership work?", a: "Each record (contact, property, task, conversation) is bound to a private HID generated for your account. Only you can see your data unless you share it with Reader or Editor access." },
-              { q: "What’s the difference between Reader and Editor?", a: "Reader can view shared records but cannot modify them. Editor can update shared records. Owners retain full control and can revoke access anytime." },
-              { q: "Can I import my existing lists?", a: "Yes—CSV import is supported for Contacts and Properties. We dedupe and validate as we ingest so your team starts clean." },
-              { q: "How is login and security handled?", a: "Authentication is powered by Auth0 with secure cookie sessions. We enforce least-privilege DB access and owner-scoped queries with server-verified HIDs." },
-              { q: "What ROI should I expect?", a: "Teams typically replace $5k/mo call centers, reduce CAC by up to 40%, and see 3× better lead quality via empathetic AI conversations. Actual results vary by list quality and follow-up discipline." },
-              { q: "Do you support teams and organizations?", a: "Yes—create an organization, invite teammates by email, and share at the record level with Reader/Editor roles. Audit-friendly by design." },
-              { q: "Can I export my data?", a: "Absolutely. Your data is yours. Export at any time in standard formats." },
-              { q: "What if I share with someone who isn’t a user?", a: "We send them a secure invite link. When they create an account, we resolve their HID automatically and apply the share." },
+              {
+                q: "How does HID ownership work?",
+                a: "Each record (contact, property, task, conversation) is bound to a private HID generated for your account. Only you can see your data unless you share it with Reader or Editor access.",
+              },
+              {
+                q: "What’s the difference between Reader and Editor?",
+                a: "Reader can view shared records but cannot modify them. Editor can update shared records. Owners retain full control and can revoke access anytime.",
+              },
+              {
+                q: "Can I import my existing lists?",
+                a: "Yes—CSV import is supported for Contacts and Properties. We dedupe and validate as we ingest so your team starts clean.",
+              },
+              {
+                q: "How is login and security handled?",
+                a: "Authentication is powered by Auth0 with secure cookie sessions. We enforce least-privilege DB access and owner-scoped queries with server-verified HIDs.",
+              },
+              {
+                q: "What ROI should I expect?",
+                a: "Teams typically replace $5k/mo call centers, reduce CAC by up to 40%, and see 3× better lead quality via empathetic AI conversations. Actual results vary by list quality and follow-up discipline.",
+              },
+              {
+                q: "Do you support teams and organizations?",
+                a: "Yes—create an organization, invite teammates by email, and share at the record level with Reader/Editor roles. Audit-friendly by design.",
+              },
+              {
+                q: "Can I export my data?",
+                a: "Absolutely. Your data is yours. Export at any time in standard formats.",
+              },
+              {
+                q: "What if I share with someone who isn’t a user?",
+                a: "We send them a secure invite link. When they create an account, we resolve their HID automatically and apply the share.",
+              },
             ].map((item, i) => (
               <div key={i} className="chrome-card p-5">
                 <h3 className="font-semibold">{item.q}</h3>
@@ -372,12 +373,13 @@ function PriceCard({
             </li>
           ))}
         </ul>
-        <Link
-          href={LOGIN_URL}
+        <a
+          href={buildLoginUrl()}
           className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-white font-semibold hover:bg-blue-700"
+          rel="noopener noreferrer"
         >
           {cta}
-        </Link>
+        </a>
       </div>
     </div>
   );
