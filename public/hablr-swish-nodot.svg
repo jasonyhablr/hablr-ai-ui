@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- stems -->
+  <rect x="220" y="220" width="140" height="584" rx="60" fill="#0B5FFF"/>
+  <rect x="664" y="220" width="140" height="584" rx="60" fill="#0B5FFF"/>
+  <!-- straight tapered swish (no dot) -->
+  <g transform="rotate(-5 512 512)" fill="#FF6A00">
+    <polygon points="240,560 900,515 900,595 240,640" />
+  </g>
+</svg>

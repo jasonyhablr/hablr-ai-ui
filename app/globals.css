@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Minimal, chrome-y blue/orange scheme */
+:root {
+  --color-primary-700:  #0EA5E9; /* sky-500/600 vibe */
+  --color-primary-800:  #0284C7;
+  --color-accent-500:   #F59E0B; /* amber */
+}
+
+.bg-primary-700 { background-color: var(--color-primary-700); }
+.hover\:bg-primary-800:hover { background-color: var(--color-primary-800); }
+.text-accent-500 { color: var(--color-accent-500); }
+
+/* Layout consistency / no body scrollbars from nested containers */
+html, body { height: 100%; }
+body { overflow-x: hidden; }
+
+/* stable gutter prevents layout shift when scrollbars appear */
+:root { scrollbar-gutter: stable both-edges; }
+
+/* Tables auto-size without forcing horizontal scroll */
+.table-auto th, .table-auto td { white-space: nowrap; }
