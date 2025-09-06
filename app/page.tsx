@@ -1,4 +1,4 @@
-// app/page.tsx — Public marketing homepage (direct Auth0 links, no client auth hooks)
+// app/page.tsx — Public marketing homepage (delegates login to app.hablr.ai)
 
 import {
   Sparkles,
@@ -13,8 +13,8 @@ import {
   Contact2,
   Check,
 } from "lucide-react";
-import Link from "next/link";
 import NextImage from "next/image";
+import { middleware } from "../middleware";
 
 // ---------- SEO (App Router) ----------
 export const metadata = {
@@ -27,7 +27,9 @@ export const metadata = {
       "Cut acquisition costs, close faster, and scale empathetic outreach to 20M+ homeowners with AI-powered lead management.",
     url: "https://hablr.ai",
     siteName: "Hablr.ai",
-    images: [{ url: "https://hablr.ai/og-image.png", width: 1200, height: 630, alt: "Hablr.ai Preview" }],
+    images: [
+      { url: "https://hablr.ai/og-image.png", width: 1200, height: 630, alt: "Hablr.ai Preview" },
+    ],
     type: "website",
   },
   twitter: {
@@ -40,41 +42,7 @@ export const metadata = {
 };
 // -------------------------------------
 
-// Build a direct Universal Login URL (no /api/auth on this marketing app).
-// If you want to use the *exact* long URL Auth0 gave you (with PKCE bits), set NEXT_PUBLIC_AUTH0_LOGIN_URL.
-function buildLoginUrl(): string {
-  // 1) Absolute override (paste your full working URL here in env if desired)
-  const override = process.env.NEXT_PUBLIC_AUTH0_LOGIN_URL;
-  if (override) return override;
-
-  // 2) Otherwise build a clean /u/login URL
-  const AUTH0_DOMAIN = (process.env.NEXT_PUBLIC_AUTH0_ISSUER_BASE_URL || "https://auth.hablr.ai").replace(/\/+$/, "");
-  const AUTH0_CLIENT_ID = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID || "AUTEUkvgwXklugJH0eHSphcdPXKLcaJE";
-  const DASHBOARD_URL = (process.env.NEXT_PUBLIC_DASHBOARD_URL || "https://app.hablr.ai").replace(/\/+$/, "");
-  const redirectUri = `${DASHBOARD_URL}/api/auth/callback`;
-
-  // NOTE: Your dashboard’s @auth0/nextjs-auth0 will handle the code exchange at /api/auth/callback.
-  // We include scope and state=returnTo so your app can route to /dashboard after login.
-  const scope = "openid profile email";
-  const state = JSON.stringify({ returnTo: "/dashboard" });
-
-  // If you *must* use /authorize + PKCE, set NEXT_PUBLIC_AUTH0_LOGIN_URL to the exact URL you pasted from Auth0.
-  // This default uses /u/login which is accepted for Universal Login in most setups.
-  const url =
-    `${AUTH0_DOMAIN}/u/login` +
-    `?client_id=${encodeURIComponent(AUTH0_CLIENT_ID)}` +
-    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-    `&response_type=code` +
-    `&scope=${encodeURIComponent(scope)}` +
-    `&state=${encodeURIComponent(state)}` +
-    `&audience=${encodeURIComponent(`${AUTH0_DOMAIN}/api/v2/`)}`;
-
-  return url;
-}
-
 export default function LandingPage() {
-  const LOGIN_URL = buildLoginUrl();
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-900">
       {/* Nav */}
@@ -82,7 +50,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-2xl flex items-center justify-center">
-              <NextImage src="/hablr-swish-nodot-32.png" alt="Hablr" width={28} height={28} className="rounded-lg" />
+              <NextImage src="/hablr-swish-nodot-32.png" alt="Hablr" width={28} height={28} className="rounded-lg"/>
             </div>
             <span className="font-semibold tracking-tight">Hablr.ai</span>
             <span className="ml-2 text-xs px-2 py-1 rounded-full bg-accent-500/10 text-accent-700 border border-accent-500/30">
@@ -96,16 +64,16 @@ export default function LandingPage() {
             <a href="#faq" className="hover:text-primary-700">FAQ</a>
           </nav>
           <div className="flex items-center gap-2">
-            {/* Direct absolute link to Auth0 Universal Login (no UserProvider required here) */}
+            {/* Direct link to dashboard’s Auth0 route */}
             <a
-              href={LOGIN_URL}
+              href="/auth"
               className="hidden sm:inline-flex px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 border border-blue-200"
               rel="noopener noreferrer"
             >
               Log in
             </a>
             <a
-              href={LOGIN_URL}
+              href="/auth"
               className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
               rel="noopener noreferrer"
             >
@@ -131,7 +99,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <a
-                href={LOGIN_URL}
+                href="/auth"
                 className="px-5 py-3 rounded-2xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700"
                 rel="noopener noreferrer"
               >
@@ -282,7 +250,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-8 text-sm">
           <div>
             <div className="flex items-center gap-2 font-semibold">
-              <NextImage src="/hablr-swish-nodot-32.png" alt="Hablr" width={16} height={16} priority />
+              <NextImage src="/hablr-swish-nodot-32.png" alt="Hablr" width={16} height={16} priority/>
               Hablr.ai
             </div>
             <p className="mt-3 text-slate-600">Leads with empathy. Replace call centers, close faster, cut costs.</p>
@@ -374,7 +342,7 @@ function PriceCard({
           ))}
         </ul>
         <a
-          href={buildLoginUrl()}
+          href="/auth"
           className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-white font-semibold hover:bg-blue-700"
           rel="noopener noreferrer"
         >
